@@ -10,6 +10,7 @@
 import os
 import sys
 import time
+import gc
 import unittest
 import sqlite3
 import tempfile
@@ -35,9 +36,18 @@ else:
     )
 
 # ===== הכנת DB זמני לפני ייבוא המודולים =====
-# יוצרים נתיב לקובץ DB ייחודי לבדיקות, כדי שלא לפגוע ב-users.db של הפרודקשן
-TEST_DB_FD, TEST_DB_PATH = tempfile.mkstemp(suffix="_test.db")
-os.close(TEST_DB_FD)
+# יוצרים נתיב לקובץ DB ייחודי לבדיקות (ייחודי לתהליך, כדי לא להתנגש בריצות מקבילות),
+# בלי לפתוח file descriptor של OS – אחרת SQLite ב-Windows מקבל "database is locked".
+TEST_DB_PATH = os.path.join(
+    tempfile.gettempdir(),
+    f"hummus_test_{os.getpid()}.db"
+)
+# מנקים שאריות מהרצה קודמת
+if os.path.exists(TEST_DB_PATH):
+    try:
+        os.remove(TEST_DB_PATH)
+    except OSError:
+        pass
 
 # מייבאים את המודולים שלנו ומחליפים בכל אחד מהם את DB_NAME
 import database
@@ -48,12 +58,35 @@ database.DB_NAME = TEST_DB_PATH
 
 
 def reset_db():
-    """מוחק את כל הטבלאות ויוצר אותן מחדש – לפני כל מחלקת בדיקה."""
-    if os.path.exists(TEST_DB_PATH):
-        os.remove(TEST_DB_PATH)
-    # פותחים מחדש כדי לוודא שהקובץ קיים, ואז יוצרים טבלאות
-    open(TEST_DB_PATH, "a").close()
+    """
+    מנקה את הנתונים בכל הטבלאות לפני כל בדיקה (במקום DROP TABLE שגורם לקריאות סכימה).
+    משתמשים ב-DELETE FROM שהוא מהיר יותר, ומריצים init_db רק כדי להבטיח
+    שהטבלאות אכן קיימות (CREATE IF NOT EXISTS).
+    """
+    # מבטיחים שהטבלאות קיימות (init_db בעצמה משתמשת ב-IF NOT EXISTS)
     database.init_db()
+
+    # מאפסים נתונים – מנסים מספר פעמים אם SQLite ב-Windows אוחז זמנית בקובץ
+    last_err = None
+    for attempt in range(5):
+        try:
+            conn = sqlite3.connect(TEST_DB_PATH, timeout=10)
+            cur = conn.cursor()
+            cur.execute("DELETE FROM inventory")
+            cur.execute("DELETE FROM hummusim")
+            cur.execute("DELETE FROM users")
+            conn.commit()
+            conn.close()
+            break
+        except sqlite3.OperationalError as e:
+            last_err = e
+            gc.collect()
+            time.sleep(0.1)
+    else:
+        raise last_err  # אם נכשלנו 5 פעמים – נזרוק כדי לראות את השגיאה האמיתית
+
+    # יוצרים מחדש את משתמש ה-admin (init_db כבר קוראת לזה, אבל מחקנו את הטבלה)
+    database.create_default_admin()
 
 
 # ============================================================
@@ -653,11 +686,15 @@ class TestServerIntegration(unittest.TestCase):
 # ============================================================
 # ניקוי בסיום הריצה
 # ============================================================
-def tear_down_module():
+def tearDownModule():
+    """ניקוי קובץ ה-DB הזמני בסוף הריצה (אם Windows מאפשר)"""
+    import gc
+    gc.collect()  # מוודא שאין connections פתוחים בזיכרון
     if os.path.exists(TEST_DB_PATH):
         try:
             os.remove(TEST_DB_PATH)
         except OSError:
+            # ב-Windows הקובץ עלול להישאר נעול – לא קריטי, נמחק אוטומטית
             pass
 
 

@@ -789,6 +789,7 @@ class MainClient(ctk.CTk):
                 data = self.sock.recv(16384).decode()
                 print(data)
                 print(f"Received {len(data)} bytes...")
+                # בדיקה אם השרת התנתק
                 if not data:
                     break
 
@@ -796,11 +797,14 @@ class MainClient(ctk.CTk):
 
                 # מנגנון חכם לחילוץ מספר הודעות JSON שמגיעות מחוברות
                 while buffer:
+                    # הורדת שורות רווח
                     buffer = buffer.lstrip()
                     try:
+                        #מחזיר כל פעם JSON אחד ואיפה הוא מסתיים במחרוזת
                         obj, index = decoder.raw_decode(buffer)
                         # שימוש ב-after כדי לעדכן את הממשק (חובה ב-Tkinter כשעובדים עם Thread)
                         self.after(0, self.handle_server_message, obj)
+                        # מחיקת הודעה שכבר טופלה
                         buffer = buffer[index:]
                     except json.JSONDecodeError:
                         # אין JSON שלם בבאפר, מחכים לעוד מידע מהסוקט

@@ -359,7 +359,7 @@ class MainClient(ctk.CTk):
 
     def connect_to_server(self):
         try:
-            # הגדרות TLS מקלות לצורכי פיתוח מקומי
+            # הגדרות TLS מקלות לצורכי פיתוח מקומי בגלל שהתעודה בכל מקרה מזוייפת
             context = ssl.create_default_context()
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE

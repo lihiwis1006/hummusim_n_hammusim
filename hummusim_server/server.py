@@ -34,10 +34,12 @@ class GameServer:
             print("שגיאה: לא נמצאו קבצי ההצפנה (cert.pem, key.pem).")
             print("אנא צרי אותם בעזרת הפקודת openssl.")
             exit(1)
+        # כי גרסאות קודמות נחשבות פרוצות
         self.ctx.minimum_version = ssl.TLSVersion.TLSv1_2
 
         # יצירת סוקט רגיל
         self.raw_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # שימוש חוזר באותה הכתובת במקרה של קריסת שרת
         self.raw_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.raw_server.bind((self.host, self.port))
 
@@ -50,6 +52,7 @@ class GameServer:
         init_db()
 
     def start(self):
+        # השרת מתחיל להאזין לחיבורים
         self.raw_server.listen()
         # 2. עטיפת השרת הרגיל ב-TLS
         self.server = self.ctx.wrap_socket(self.raw_server, server_side=True)

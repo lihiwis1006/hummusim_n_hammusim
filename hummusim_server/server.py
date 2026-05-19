@@ -13,7 +13,7 @@ from auth import handle_register, handle_login, handle_verification, handle_rese
 from game_logic import check_winner, handle_making_hummus
 from ai_utils import generate_ai_password
 
-HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 PORT = 5000
 
 # קבצי ההצפנה שיצרנו

@@ -15,6 +15,7 @@ PEPPER = os.getenv("PASSWORD_PEPPER", "")
 
 def create_token(username: str, role: str) -> str:
     """מייצר JWT חתום עם פרטי המשתמש והתפקיד שלו"""
+    # המידע שנרצה לשמור בטוקן
     payload = {
         "user_id": username,
         "role": role,

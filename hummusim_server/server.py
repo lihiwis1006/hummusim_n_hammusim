@@ -363,22 +363,51 @@ class GameServer:
 
         for game_id, game in list(self.games.items()):
             if conn in game["players"]:
+
                 other_player = [p for p in game["players"] if p != conn][0]
+
                 try:
-                    self.send_json(other_player, {
-                        "status": "update",
-                        "board": game["board"],
-                        "turn": False,
-                        "winner": game["symbols"][other_player]
-                    })
-                    other_username = self.usernames.get(other_player)
-                    if other_username:
-                        self.send_json(other_player, {"status": "reward", "item": give_reward(other_username)})
-                except:
-                    pass
+                    # משחק ניחוש מספרים
+                    if game.get("type") == "number":
+
+                        self.send_json(other_player, {
+                            "status": "number_update",
+                            "message": "🎉 היריב התנתק! ניצחת טכנית.",
+                            "turn": False,
+                            "winner": True,
+                            "is_me": True
+                        })
+
+                        other_username = self.usernames.get(other_player)
+
+                        if other_username:
+                            self.send_json(other_player, {
+                                "status": "reward",
+                                "item": give_reward(other_username)
+                            })
+
+                    # איקס עיגול
+                    else:
+                        self.send_json(other_player, {
+                            "status": "update",
+                            "board": game["board"],
+                            "turn": False,
+                            "winner": game["symbols"][other_player]
+                        })
+
+                        other_username = self.usernames.get(other_player)
+
+                        if other_username:
+                            self.send_json(other_player, {
+                                "status": "reward",
+                                "item": give_reward(other_username)
+                            })
+
+                except Exception as e:
+                    print("Disconnect handling error:", e)
+
                 del self.games[game_id]
                 break
-
         self.usernames.pop(conn, None)
         conn.close()
         print(f"[-] Disconnected: {addr}")

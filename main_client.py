@@ -9,7 +9,7 @@ from tkinter import filedialog, messagebox
 from PIL import Image
 import os
 
-HOST = "127.0.0.1"
+HOST = "192.168.12.29"
 PORT = 5000
 
 # הגדרת צבעים ורודים לשימוש כללי
@@ -208,7 +208,7 @@ class NumberGuessGame(BaseGameFrame):
             widget.destroy()
 
         # אנחנו קוראים ל-build_ui של מחלקת הבסיס כדי לקבל את הלוגו המשותף
-        super().build_ui()
+        # super().build_ui()
 
         title_lbl = ctk.CTkLabel(self, text="נחש את המספר (1-100)!", font=("Arial", 24, "bold"),
                                  text_color=COLORS["DARK_PINK"])
@@ -359,7 +359,7 @@ class MainClient(ctk.CTk):
 
     def connect_to_server(self):
         try:
-            # הגדרות TLS מקלות לצורכי פיתוח מקומי בגלל שהתעודה בכל מקרה מזוייפת
+            # הגדרות TLS מקלות לצורכי פיתוח מקומי
             context = ssl.create_default_context()
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
@@ -789,7 +789,6 @@ class MainClient(ctk.CTk):
                 data = self.sock.recv(16384).decode()
                 print(data)
                 print(f"Received {len(data)} bytes...")
-                # בדיקה אם השרת התנתק
                 if not data:
                     break
 
@@ -797,14 +796,11 @@ class MainClient(ctk.CTk):
 
                 # מנגנון חכם לחילוץ מספר הודעות JSON שמגיעות מחוברות
                 while buffer:
-                    # הורדת שורות רווח
                     buffer = buffer.lstrip()
                     try:
-                        #מחזיר כל פעם JSON אחד ואיפה הוא מסתיים במחרוזת
                         obj, index = decoder.raw_decode(buffer)
                         # שימוש ב-after כדי לעדכן את הממשק (חובה ב-Tkinter כשעובדים עם Thread)
                         self.after(0, self.handle_server_message, obj)
-                        # מחיקת הודעה שכבר טופלה
                         buffer = buffer[index:]
                     except json.JSONDecodeError:
                         # אין JSON שלם בבאפר, מחכים לעוד מידע מהסוקט

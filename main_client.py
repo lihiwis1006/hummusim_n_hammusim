@@ -9,7 +9,7 @@ from tkinter import filedialog, messagebox
 from PIL import Image
 import os
 
-HOST = "192.168.12.29"
+HOST = "127.0.0.1"
 PORT = 5000
 
 # הגדרת צבעים ורודים לשימוש כללי

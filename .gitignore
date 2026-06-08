@@ -1,4 +1,2 @@
 .env
 *.db
-cert.pem
-key.pem
